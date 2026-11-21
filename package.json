@@ -14,6 +14,7 @@
     "node": ">=22.5.0"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.1.0",
     "bcryptjs": "^2.4.3",
     "cookie-session": "^2.1.1",
     "dotenv": "^16.4.5",
