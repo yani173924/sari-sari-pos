@@ -4,10 +4,15 @@ const { setFlash } = require('../middleware/flash');
 
 async function posScreen(req, res, next) {
   try {
-    const { rows: products } = await query(
-      'SELECT * FROM products WHERE active = TRUE AND stock_quantity > 0 ORDER BY name'
-    );
-    res.render('pos/index', { title: 'Point of Sale', products });
+    const [products, categories] = await Promise.all([
+      query(
+        `SELECT products.*, categories.name AS category_name
+         FROM products LEFT JOIN categories ON categories.id = products.category_id
+         WHERE products.active = TRUE AND products.stock_quantity > 0 ORDER BY products.name`
+      ).then((r) => r.rows),
+      query('SELECT id, name FROM categories ORDER BY name').then((r) => r.rows),
+    ]);
+    res.render('pos/index', { title: 'Point of Sale', products, categories });
   } catch (err) {
     next(err);
   }
@@ -17,8 +22,12 @@ async function searchProducts(req, res, next) {
   try {
     const q = `%${req.query.q || ''}%`;
     const { rows: products } = await query(
-      `SELECT id, name, barcode, unit, selling_price, stock_quantity
-       FROM products WHERE active = TRUE AND (name ILIKE $1 OR barcode ILIKE $1) ORDER BY name LIMIT 20`,
+      `SELECT products.id, products.name, products.barcode, products.category_id, categories.name AS category_name,
+              products.unit, products.selling_price, products.stock_quantity
+       FROM products LEFT JOIN categories ON categories.id = products.category_id
+       WHERE products.active = TRUE AND products.stock_quantity > 0
+         AND (products.name ILIKE $1 OR products.barcode ILIKE $1)
+       ORDER BY products.name LIMIT 100`,
       [q]
     );
     res.json(products);
@@ -28,6 +37,18 @@ async function searchProducts(req, res, next) {
 }
 
 async function checkout(items, amountPaid, userId) {
+  if (!Array.isArray(items) || items.length === 0) throw new Error('Cart is empty.');
+  const quantitiesByProduct = new Map();
+  for (const item of items) {
+    if (!item || typeof item !== 'object' || !Number.isInteger(item.productId) || item.productId <= 0 ||
+        !Number.isInteger(item.quantity) || item.quantity <= 0) {
+      throw new Error('Cart contains an invalid product or quantity.');
+    }
+    quantitiesByProduct.set(item.productId, (quantitiesByProduct.get(item.productId) || 0) + item.quantity);
+  }
+  if (!Number.isFinite(amountPaid)) throw new Error('Enter a valid payment amount.');
+  amountPaid = Math.round(amountPaid * 100) / 100;
+
   const client = await getClient();
   try {
     await client.query('BEGIN');
@@ -35,29 +56,26 @@ async function checkout(items, amountPaid, userId) {
     let total = 0;
     const resolvedItems = [];
 
-    for (const item of items) {
+    for (const [productId, quantity] of quantitiesByProduct) {
       const { rows } = await client.query('SELECT * FROM products WHERE id = $1 AND active = TRUE FOR UPDATE', [
-        item.productId,
+        productId,
       ]);
       const product = rows[0];
       if (!product) throw new Error('Product not found.');
-      const quantity = Number(item.quantity);
-      if (!Number.isFinite(quantity) || quantity <= 0) throw new Error(`Invalid quantity for ${product.name}.`);
       if (product.stock_quantity < quantity) {
         throw new Error(`Not enough stock for "${product.name}" (only ${product.stock_quantity} ${product.unit} left).`);
       }
-      const subtotal = product.selling_price * quantity;
-      total += subtotal;
+      const subtotal = Math.round(product.selling_price * quantity * 100) / 100;
+      total = Math.round((total + subtotal) * 100) / 100;
       resolvedItems.push({ product, quantity, subtotal });
     }
 
-    if (resolvedItems.length === 0) throw new Error('Cart is empty.');
-    if (amountPaid < total) throw new Error('Amount paid is less than the total.');
+    if (!Number.isFinite(amountPaid) || amountPaid < total) throw new Error('Enter a valid payment amount at least equal to the total.');
 
     const receiptNo = generateReceiptNo();
     const saleResult = await client.query(
       'INSERT INTO sales (receipt_no, user_id, total_amount, amount_paid, change_amount) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [receiptNo, userId, total, amountPaid, amountPaid - total]
+      [receiptNo, userId, total, amountPaid, Math.round((amountPaid - total) * 100) / 100]
     );
     const saleId = saleResult.rows[0].id;
 

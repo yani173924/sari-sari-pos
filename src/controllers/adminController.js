@@ -4,7 +4,7 @@ const { setFlash } = require('../middleware/flash');
 
 async function dashboard(req, res, next) {
   try {
-    const [todayTotal, weekTotal, monthTotal, trend, topProducts, lowStock, recentSales] = await Promise.all([
+    const [todayTotal, weekTotal, monthTotal, trend, topProducts, lowStock, recentSales, storeTotals] = await Promise.all([
       query(
         `SELECT COALESCE(SUM(total_amount), 0) AS total, COUNT(*) AS count
          FROM sales WHERE created_at::date = CURRENT_DATE`
@@ -42,6 +42,14 @@ async function dashboard(req, res, next) {
          FROM sales JOIN users ON users.id = sales.user_id
          ORDER BY sales.created_at DESC LIMIT 8`
       ).then((r) => r.rows),
+      query(
+        `SELECT
+           (SELECT COUNT(*) FROM products WHERE active = TRUE) AS product_count,
+           (SELECT COUNT(*) FROM categories) AS category_count,
+           (SELECT COALESCE(SUM(total_amount), 0) FROM sales) AS sales_total,
+           (SELECT COUNT(*) FROM sales) AS transaction_count,
+           (SELECT COUNT(*) FROM products WHERE active = TRUE AND stock_quantity <= reorder_level) AS low_stock_count`
+      ).then((r) => r.rows[0]),
     ]);
 
     // Fill in missing days with zero so the trend chart has a full 7-day axis.
@@ -63,6 +71,7 @@ async function dashboard(req, res, next) {
       topProducts,
       lowStock,
       recentSales,
+      storeTotals,
     });
   } catch (err) {
     next(err);
@@ -142,15 +151,46 @@ async function updateProduct(req, res, next) {
 }
 
 async function createCategory(req, res, next) {
-  const { name } = req.body;
+  const name = (req.body.name || '').trim();
   try {
-    if (name && name.trim()) {
-      await query('INSERT INTO categories (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [name.trim()]);
-    }
-    res.redirect('/admin/products');
+    if (!name) throw new Error('Category name is required.');
+    const result = await query('INSERT INTO categories (name) VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id', [name]);
+    if (result.rowCount === 0) throw new Error('A category with that name already exists.');
+    setFlash(req, 'success', `Category "${name}" added.`);
+    res.redirect('/admin/products#categories');
   } catch (err) {
-    next(err);
+    if (err.code) return next(err);
+    setFlash(req, 'error', `Could not add category: ${err.message}`);
+    res.redirect('/admin/products#categories');
   }
+}
+
+async function updateCategory(req, res) {
+  const name = (req.body.name || '').trim();
+  try {
+    if (!name) throw new Error('Category name is required.');
+    const result = await query('UPDATE categories SET name = $1 WHERE id = $2', [name, req.params.id]);
+    if (result.rowCount === 0) throw new Error('Category not found.');
+    setFlash(req, 'success', 'Category updated.');
+  } catch (err) {
+    setFlash(req, 'error', `Could not update category: ${err.message}`);
+  }
+  res.redirect('/admin/products#categories');
+}
+
+async function deleteCategory(req, res) {
+  try {
+    const { rows } = await query('SELECT COUNT(*) AS count FROM products WHERE category_id = $1', [req.params.id]);
+    if (Number(rows[0].count) > 0) {
+      throw new Error('Reassign or remove this category from its products before deleting it.');
+    }
+    const result = await query('DELETE FROM categories WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) throw new Error('Category not found.');
+    setFlash(req, 'success', 'Category deleted.');
+  } catch (err) {
+    setFlash(req, 'error', `Could not delete category: ${err.message}`);
+  }
+  res.redirect('/admin/products#categories');
 }
 
 // ---- Users ----
@@ -291,6 +331,8 @@ module.exports = {
   createProduct,
   updateProduct,
   createCategory,
+  updateCategory,
+  deleteCategory,
   listUsers,
   createUser,
   toggleUserActive,

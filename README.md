@@ -1,6 +1,6 @@
-# Sari-Sari POS
+# DailyMart POS
 
-A point-of-sale system for a small sari-sari store, with separate **Admin** and **Sales Representative (cashier)** roles. Built with Node.js, Express, EJS, and PostgreSQL, and deployable to Vercel.
+A pastel-themed point-of-sale system for a small sari-sari store, with separate **Admin** and **Sales Representative (cashier)** roles. Branded as DailyMart and built with Node.js, Express, EJS, and PostgreSQL, deployable to Vercel.
 
 ## Features
 

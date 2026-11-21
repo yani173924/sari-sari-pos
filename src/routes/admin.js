@@ -12,6 +12,8 @@ router.get('/products', ctrl.listProducts);
 router.post('/products', ctrl.createProduct);
 router.post('/products/:id', ctrl.updateProduct);
 router.post('/categories', ctrl.createCategory);
+router.post('/categories/:id', ctrl.updateCategory);
+router.post('/categories/:id/delete', ctrl.deleteCategory);
 
 router.get('/users', ctrl.listUsers);
 router.post('/users', ctrl.createUser);

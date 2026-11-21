@@ -1,29 +1,45 @@
 <%- include('../partials/head') %>
 <%- include('../partials/nav') %>
 <main class="container">
-  <h1>Dashboard</h1>
+  <div class="page-heading">
+    <div><p class="eyebrow">DailyMart overview</p><h1>Dashboard</h1></div>
+  </div>
 
   <div class="stat-row">
     <div class="stat-card">
-      <div class="stat-label">Today</div>
-      <div class="stat-value"><%= peso(todayTotal.total) %></div>
-      <div class="stat-sub"><%= todayTotal.count %> transaction<%= todayTotal.count === 1 ? '' : 's' %></div>
+      <div class="stat-label">Total products</div>
+      <div class="stat-value"><%= storeTotals.product_count %></div>
+      <div class="stat-sub">Active items for sale</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Last 7 Days</div>
-      <div class="stat-value"><%= peso(weekTotal.total) %></div>
-      <div class="stat-sub"><%= weekTotal.count %> transaction<%= weekTotal.count === 1 ? '' : 's' %></div>
+      <div class="stat-label">Categories</div>
+      <div class="stat-value"><%= storeTotals.category_count %></div>
+      <div class="stat-sub">Product groups</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">This Month</div>
-      <div class="stat-value"><%= peso(monthTotal.total) %></div>
-      <div class="stat-sub"><%= monthTotal.count %> transaction<%= monthTotal.count === 1 ? '' : 's' %></div>
+      <div class="stat-label">Total sales</div>
+      <div class="stat-value"><%= peso(storeTotals.sales_total) %></div>
+      <div class="stat-sub">All recorded sales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Transactions</div>
+      <div class="stat-value"><%= storeTotals.transaction_count %></div>
+      <div class="stat-sub">All recorded receipts</div>
     </div>
   </div>
 
+  <section class="card">
+    <div class="section-heading"><div><p class="eyebrow">Sales summary</p><h2>At a glance</h2></div></div>
+    <div class="summary-chips">
+      <div><span>Today</span><strong><%= peso(todayTotal.total) %></strong><small><%= todayTotal.count %> transactions</small></div>
+      <div><span>Last 7 days</span><strong><%= peso(weekTotal.total) %></strong><small><%= weekTotal.count %> transactions</small></div>
+      <div><span>This month</span><strong><%= peso(monthTotal.total) %></strong><small><%= monthTotal.count %> transactions</small></div>
+    </div>
+  </section>
+
   <div class="grid-2">
     <div class="card">
-      <h2>Sales Trend (7 days)</h2>
+      <h2>Sales trend <span class="muted">· 7 days</span></h2>
       <canvas id="salesTrendChart" height="220"></canvas>
     </div>
 
@@ -50,7 +66,7 @@
 
   <div class="grid-2">
     <div class="card">
-      <h2>Low Stock Alerts</h2>
+      <h2>Inventory overview <span class="muted">· <%= storeTotals.low_stock_count %> low stock</span></h2>
       <% if (lowStock.length === 0) { %>
         <p class="muted">All products are sufficiently stocked.</p>
       <% } else { %>
@@ -70,7 +86,7 @@
     </div>
 
     <div class="card">
-      <h2>Recent Transactions</h2>
+      <h2>Recent transactions</h2>
       <% if (recentSales.length === 0) { %>
         <p class="muted">No transactions yet.</p>
       <% } else { %>
@@ -103,8 +119,8 @@
       datasets: [{
         label: 'Sales (₱)',
         data: trendData.map(d => d.total),
-        borderColor: '#2b6cb0',
-        backgroundColor: 'rgba(43, 108, 176, 0.15)',
+        borderColor: '#6F5A91',
+        backgroundColor: 'rgba(216, 193, 250, 0.35)',
         tension: 0.3,
         fill: true,
       }],

@@ -10,6 +10,9 @@
   const checkoutForm = document.getElementById('checkoutForm');
   const productGrid = document.getElementById('productGrid');
   const searchInput = document.getElementById('productSearch');
+  const productMessage = document.getElementById('productMessage');
+  const categoryFilters = document.querySelector('.category-filters');
+  let activeCategory = 'all';
 
   function peso(n) {
     return '₱' + Number(n).toFixed(2);
@@ -66,6 +69,12 @@
     cartBody.innerHTML = '';
     let total = 0;
 
+    if (cart.size === 0) {
+      const emptyRow = document.createElement('tr');
+      emptyRow.innerHTML = '<td colspan="5" class="cart-empty">Your cart is waiting for its first item.</td>';
+      cartBody.appendChild(emptyRow);
+    }
+
     cart.forEach((item) => {
       const subtotal = item.price * item.qty;
       total += subtotal;
@@ -89,6 +98,17 @@
     checkoutBtn.disabled = cart.size === 0;
   }
 
+  function filterProducts() {
+    let visibleCount = 0;
+    productGrid.querySelectorAll('.product-tile').forEach((tile) => {
+      const matches = activeCategory === 'all' || tile.dataset.categoryId === activeCategory;
+      tile.hidden = !matches;
+      if (matches) visibleCount += 1;
+    });
+    productMessage.hidden = visibleCount > 0;
+    if (visibleCount === 0) productMessage.textContent = 'No in-stock products found in this category.';
+  }
+
   function updateChange(total) {
     const paid = Number(amountPaidInput.value) || 0;
     const change = paid - total;
@@ -107,7 +127,17 @@
 
   productGrid.addEventListener('click', (e) => {
     const tile = e.target.closest('.product-tile');
-    if (tile) addToCart(tile);
+    if (tile && !tile.hidden) addToCart(tile);
+  });
+
+  categoryFilters.addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-category]');
+    if (!button) return;
+    activeCategory = button.dataset.category;
+    categoryFilters.querySelectorAll('.category-filter').forEach((filter) => {
+      filter.classList.toggle('active', filter === button);
+    });
+    filterProducts();
   });
 
   amountPaidInput.addEventListener('input', () => {
@@ -129,20 +159,30 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(async () => {
       const q = searchInput.value.trim();
-      const res = await fetch(`/pos/api/products?q=${encodeURIComponent(q)}`);
-      const products = await res.json();
-      productGrid.innerHTML = products
-        .map(
-          (p) => `
-        <button type="button" class="product-tile" data-id="${p.id}" data-name="${escapeAttr(p.name)}" data-price="${p.selling_price}" data-stock="${p.stock_quantity}" data-unit="${escapeAttr(p.unit)}">
+      try {
+        const res = await fetch(`/pos/api/products?q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error('Product search failed.');
+        const products = await res.json();
+        productGrid.innerHTML = products
+          .map(
+            (p) => `
+        <button type="button" class="product-tile" data-id="${p.id}" data-name="${escapeAttr(p.name)}" data-price="${p.selling_price}" data-stock="${p.stock_quantity}" data-unit="${escapeAttr(p.unit)}" data-category-id="${p.category_id || ''}">
           <span class="product-name">${escapeHtml(p.name)}</span>
           <span class="product-price">${peso(p.selling_price)}</span>
+          <span class="product-category">${escapeHtml(p.category_name || 'Uncategorized')}</span>
           <span class="product-stock">${p.stock_quantity} ${escapeHtml(p.unit)} left</span>
         </button>`
-        )
-        .join('');
+          )
+          .join('');
+        filterProducts();
+      } catch (error) {
+        productGrid.innerHTML = '';
+        productMessage.hidden = false;
+        productMessage.textContent = 'Products could not be loaded. Please try again.';
+      }
     }, 250);
   });
 
+  filterProducts();
   render();
 })();
