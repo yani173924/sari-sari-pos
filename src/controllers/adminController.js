@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
 const { setFlash } = require('../middleware/flash');
+const { getDailySalesReport, isValidReportDate } = require('../utils/dailySalesReport');
 
 async function dashboard(req, res, next) {
   try {
@@ -280,6 +281,27 @@ async function viewSale(req, res, next) {
   }
 }
 
+async function dailySalesReport(req, res, next) {
+  const requestedDate = req.query.date || null;
+  if (requestedDate && !isValidReportDate(requestedDate)) {
+    setFlash(req, 'error', 'Choose a valid report date.');
+    return res.redirect('/admin/daily-report');
+  }
+
+  try {
+    const report = await getDailySalesReport(requestedDate);
+    res.render('admin/daily_report', {
+      title: 'Daily Report',
+      reportPath: '/admin/daily-report',
+      reportTitle: 'Daily sales report',
+      receiptPath: '/admin/sales',
+      ...report,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---- Inventory reports (submitted by sales reps) ----
 
 async function listInventoryReports(req, res, next) {
@@ -338,6 +360,7 @@ module.exports = {
   toggleUserActive,
   listSales,
   viewSale,
+  dailySalesReport,
   listInventoryReports,
   salesChartData,
 };

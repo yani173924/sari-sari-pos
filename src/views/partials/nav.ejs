@@ -13,10 +13,12 @@
         <a href="/admin/products#categories" aria-label="Categories"><span class="nav-icon">▤</span><span>Categories</span></a>
         <a href="/admin/products#inventory" aria-label="Inventory"><span class="nav-icon">◫</span><span>Inventory</span></a>
         <a href="/admin/sales" aria-label="Transactions" class="<%= title === 'Sales' || title === 'Sale Detail' ? 'active' : '' %>"><span class="nav-icon">▧</span><span>Transactions</span></a>
-        <a href="/admin/inventory-reports" aria-label="Reports" class="<%= title === 'Inventory Reports' ? 'active' : '' %>"><span class="nav-icon">▥</span><span>Reports</span></a>
+        <a href="/admin/daily-report" aria-label="Reports" class="<%= title === 'Daily Report' ? 'active' : '' %>"><span class="nav-icon">▥</span><span>Reports</span></a>
+        <a href="/admin/inventory-reports" aria-label="Inventory reports" class="<%= title === 'Inventory Reports' ? 'active' : '' %>"><span class="nav-icon">◷</span><span>Stock reports</span></a>
         <a href="/admin/users" aria-label="Settings" class="<%= title === 'Users' ? 'active' : '' %>"><span class="nav-icon">⚙</span><span>Settings</span></a>
       <% } else { %>
         <a href="/pos" aria-label="POS and Sales" class="<%= title === 'Point of Sale' ? 'active' : '' %>"><span class="nav-icon">▣</span><span>POS / Sales</span></a>
+        <a href="/pos/daily-report" aria-label="Daily report" class="<%= title === 'Daily Report' ? 'active' : '' %>"><span class="nav-icon">▥</span><span>Daily report</span></a>
         <a href="/pos/inventory" aria-label="Inventory" class="<%= title === 'Inventory' ? 'active' : '' %>"><span class="nav-icon">◫</span><span>Inventory</span></a>
       <% } %>
     </nav>
