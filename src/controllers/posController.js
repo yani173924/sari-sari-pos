@@ -1,6 +1,7 @@
 const { query, getClient } = require('../config/db');
 const { generateReceiptNo } = require('../utils/helpers');
 const { setFlash } = require('../middleware/flash');
+const { getDailySalesReport, isValidReportDate } = require('../utils/dailySalesReport');
 
 async function posScreen(req, res, next) {
   try {
@@ -112,6 +113,27 @@ async function postCheckout(req, res) {
   }
 }
 
+async function dailySalesReport(req, res, next) {
+  const requestedDate = req.query.date || null;
+  if (requestedDate && !isValidReportDate(requestedDate)) {
+    setFlash(req, 'error', 'Choose a valid report date.');
+    return res.redirect('/pos/daily-report');
+  }
+
+  try {
+    const report = await getDailySalesReport(requestedDate, req.session.user.id);
+    res.render('pos/daily_report', {
+      title: 'Daily Report',
+      reportPath: '/pos/daily-report',
+      reportTitle: 'My daily sales report',
+      receiptPath: '/pos/receipt',
+      ...report,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function viewReceipt(req, res, next) {
   try {
     const { rows } = await query('SELECT * FROM sales WHERE id = $1', [req.params.id]);
@@ -190,6 +212,7 @@ module.exports = {
   posScreen,
   searchProducts,
   postCheckout,
+  dailySalesReport,
   viewReceipt,
   inventoryScreen,
   postInventoryReport,

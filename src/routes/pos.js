@@ -7,6 +7,7 @@ router.use(requireRole('sales_rep'));
 
 router.get('/', ctrl.posScreen);
 router.get('/api/products', ctrl.searchProducts);
+router.get('/daily-report', ctrl.dailySalesReport);
 router.post('/checkout', ctrl.postCheckout);
 router.get('/receipt/:id', ctrl.viewReceipt);
 

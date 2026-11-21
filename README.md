@@ -9,10 +9,12 @@ A pastel-themed point-of-sale system for a small sari-sari store, with separate 
 - Product & category management (add, edit, deactivate)
 - User management (create/deactivate accounts, assign roles)
 - Full sales transaction history with date filtering and receipt detail
+- Daily sales reports with payment totals, products sold, and transaction details
 - Visibility into every inventory report submitted by cashiers
 
 **Sales Representative (Cashier)**
 - POS screen: search/scan products, build a cart, accept cash payment, auto-compute change, print a receipt
+- Personal daily sales report with date selection and printable transaction details
 - Inventory screen: view current stock and submit reports (restock, damaged, lost, correction)
 
 **Accounts**

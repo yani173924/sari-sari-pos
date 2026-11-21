@@ -22,6 +22,7 @@ router.post('/users/:id/toggle-active', ctrl.toggleUserActive);
 router.get('/sales', ctrl.listSales);
 router.get('/sales/:id', ctrl.viewSale);
 
+router.get('/daily-report', ctrl.dailySalesReport);
 router.get('/inventory-reports', ctrl.listInventoryReports);
 
 module.exports = router;

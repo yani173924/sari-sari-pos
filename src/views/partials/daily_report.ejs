@@ -1,0 +1,104 @@
+<main class="container">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">DailyMart reports</p>
+      <h1><%= reportTitle %></h1>
+    </div>
+    <button type="button" class="btn btn-secondary no-print" onclick="window.print()">Print report</button>
+  </div>
+
+  <form method="GET" action="<%= reportPath %>" class="card form-inline report-filter no-print">
+    <label>Report date
+      <input type="date" name="date" value="<%= summary.report_date %>" required />
+    </label>
+    <button type="submit" class="btn btn-primary">View report</button>
+    <% if (currentUser.role === 'admin') { %>
+      <a class="btn btn-secondary" href="/admin/sales?from=<%= summary.report_date %>&amp;to=<%= summary.report_date %>">View transactions</a>
+    <% } %>
+  </form>
+
+  <div class="report-date-label">
+    <span>Report for</span>
+    <strong><%= summary.report_date %></strong>
+  </div>
+
+  <% const unitsSold = items.reduce((sum, item) => sum + Number(item.units_sold), 0); %>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Total sales</div>
+      <div class="stat-value"><%= peso(summary.total) %></div>
+      <div class="stat-sub">Completed transactions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Transactions</div>
+      <div class="stat-value"><%= summary.transaction_count %></div>
+      <div class="stat-sub">Receipts issued</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Units sold</div>
+      <div class="stat-value"><%= unitsSold %></div>
+      <div class="stat-sub">Across all products</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Average sale</div>
+      <div class="stat-value"><%= peso(summary.average_sale) %></div>
+      <div class="stat-sub">Per transaction</div>
+    </div>
+  </div>
+
+  <div class="grid-2 report-facts">
+    <section class="card">
+      <h2>Payment summary</h2>
+      <div class="report-fact"><span>Cash received</span><strong><%= peso(summary.amount_paid) %></strong></div>
+      <div class="report-fact"><span>Change given</span><strong><%= peso(summary.change_given) %></strong></div>
+    </section>
+
+    <section class="card">
+      <h2>Products sold</h2>
+      <% if (items.length === 0) { %>
+        <p class="muted">No items were sold on this date.</p>
+      <% } else { %>
+        <div class="table-scroll">
+          <table class="table">
+            <thead><tr><th>Product</th><th>Units</th><th>Sales</th></tr></thead>
+            <tbody>
+              <% items.forEach(item => { %>
+                <tr>
+                  <td><%= item.product_name %></td>
+                  <td><%= item.units_sold %></td>
+                  <td><%= peso(item.revenue) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Transactions</h2>
+    <% if (sales.length === 0) { %>
+      <p class="muted">No transactions recorded for this date.</p>
+    <% } else { %>
+      <div class="table-scroll">
+        <table class="table">
+          <thead><tr><th>Receipt</th><th>Cashier</th><th>Units</th><th>Total</th><th>Paid</th><th>Change</th><th>Time</th></tr></thead>
+          <tbody>
+            <% sales.forEach(sale => { %>
+              <tr>
+                <td><a href="<%= receiptPath %>/<%= sale.id %>"><%= sale.receipt_no %></a></td>
+                <td><%= sale.cashier %></td>
+                <td><%= sale.units_sold %></td>
+                <td><%= peso(sale.total_amount) %></td>
+                <td><%= peso(sale.amount_paid) %></td>
+                <td><%= peso(sale.change_amount) %></td>
+                <td><%= new Date(sale.created_at).toLocaleTimeString() %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</main>
