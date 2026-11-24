@@ -96,7 +96,7 @@ vercel.json               # Vercel routing + function config
 
    | Role | Username | Password |
    |---|---|---|
-   | Admin | `admin` | `admin123` |
+   | Admin | `mariane` | `Admin12345` |
    | Sales Rep | `cashier1` | `cashier123` |
 
    **Change these passwords (or re-seed with different ones) before using this with real data.**

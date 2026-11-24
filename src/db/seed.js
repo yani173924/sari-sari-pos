@@ -15,6 +15,29 @@ async function upsertUser({ username, password, fullName, role }) {
   console.log(`Created ${role} user "${username}" with password "${password}"`);
 }
 
+async function resetAdmin({ username, password, fullName }) {
+  const hash = bcrypt.hashSync(password, 10);
+  const existing = await query(
+    'SELECT id FROM users WHERE username = $1 OR role = $2 ORDER BY CASE WHEN username = $1 THEN 0 ELSE 1 END, id LIMIT 1',
+    [username, 'admin']
+  );
+
+  if (existing.rows.length) {
+    await query(
+      'UPDATE users SET username = $1, password_hash = $2, full_name = $3, role = $4, active = TRUE WHERE id = $5',
+      [username, hash, fullName, 'admin', existing.rows[0].id]
+    );
+    console.log(`Reset admin user "${username}" with password "${password}"`);
+    return;
+  }
+
+  await query(
+    'INSERT INTO users (username, password_hash, full_name, role) VALUES ($1, $2, $3, $4)',
+    [username, hash, fullName, 'admin']
+  );
+  console.log(`Created admin user "${username}" with password "${password}"`);
+}
+
 async function upsertCategory(name) {
   await query('INSERT INTO categories (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [name]);
   const { rows } = await query('SELECT id FROM categories WHERE name = $1', [name]);
@@ -32,7 +55,7 @@ async function upsertProduct(p) {
 }
 
 async function main() {
-  await upsertUser({ username: 'admin', password: 'admin123', fullName: 'Store Owner', role: 'admin' });
+  await resetAdmin({ username: 'mariane', password: 'Admin12345', fullName: 'Mariane' });
   await upsertUser({ username: 'cashier1', password: 'cashier123', fullName: 'Juana Cruz', role: 'sales_rep' });
 
   const snacks = await upsertCategory('Snacks');
